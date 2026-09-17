@@ -1,6 +1,7 @@
 #include <M5Unified.h>
 #include <Wire.h>
 #include <math.h>
+#include <SD.h>
 
 double u[1] = {0};
 double y[2] = {0., 0.};
@@ -14,6 +15,8 @@ float gyroXBias = 0.0;
 float speedIntegral = 0.0;
 
 float pwm_scale = 3.5;
+
+File csv;
 
 // --- MATEMATICA PD (Kp = 15, Kd = 0.3) ---
 void update_ssm(double *u, double *y) {
@@ -94,6 +97,19 @@ void setup() {
 	auto cfg = M5.config();
 	M5.begin(cfg);
 	Serial.begin(115200);
+	if (!SD.begin(4, SPI)) {
+    Serial.println("SD card initialization failed!");
+    return;
+  }
+	csv = SD.open("/telemetria.csv", FILE_WRITE);
+	if (!csv) {
+    Serial.println("Failed to open example.txt for writing.");
+    return;
+  } else {
+		csv.println("u,theta");
+		csv.close();
+	}
+
 	delay(500);
 	Serial.println("\n--- M5Stack Core Bala2 Avviato ---");
 
@@ -145,5 +161,13 @@ void loop() {
 	speedIntegral = constrain(speedIntegral, -3.0, 3.0);
 
 	Serial.printf("Filt: %6.2f | Err: %6.2f | SpdInt: %5.2f | L: %4d\n", filteredPitch, error, speedIntegral, motorSpeedL);
+
+	String logString = String(u[0]) + "," + String(filteredPitch);
+	csv = SD.open("/telemetria.csv", FILE_APPEND);
+	if (csv) {
+		csv.println(logString);
+		csv.close();
+	}
+
 	delay(20);
 }
