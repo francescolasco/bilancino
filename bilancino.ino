@@ -3,8 +3,8 @@
 #include <math.h> 
 // #include <SD.h>
 
-float Kp = 40.0; 
-float Kd = 0.1; 
+float Kp = 73.0; 
+float Kd = 1.2; 
 
 float previousError = 0.0; 
 
@@ -18,6 +18,8 @@ float gyroXBias = 0.0;
 
 int32_t offsetEnc = 0; 
 int32_t lastPosition = 0;
+
+uint32_t loopTimer = 0;
 
 // Controllo posizione
 void readEncoders(int32_t *encL, int32_t *encR) {
@@ -41,9 +43,6 @@ int32_t getAveragePosition() {
 }
 
 void setMotors(int16_t speedL, int16_t speedR) { 
-  speedL = constrain(speedL, -1023, 1023);
-  speedR = constrain(speedR, -1023, 1023);
-
   Wire.beginTransmission(0x3A); 
   Wire.write(0x00); 
   Wire.write((uint8_t)(speedL >> 8));
@@ -64,9 +63,6 @@ void calibrateZero() {
   M5.Display.setCursor(20, 30); 
   M5.Display.setTextSize(3); 
   M5.Display.println("Calibrazione"); 
-  M5.Display.setCursor(20, 70); 
-  M5.Display.setTextSize(2); 
-  M5.Display.println("Tienilo fermo..."); 
   delay(1500); 
 
   float pitchSum = 0; 
@@ -110,7 +106,9 @@ void setup() {
   
   M5.Power.setExtOutput(true); 
   Wire.begin(21, 22, 400000UL); 
-  calibrateZero(); 
+  calibrateZero();
+
+  loopTimer = micros(); 
   // Scrittura CSV
   /*
   if (!SD.begin(4, SPI)) {
@@ -158,19 +156,19 @@ void loop() {
   float trueGyroX = gyroX - gyroXBias; 
   float accPitch = -atan2(accY, accZ) * 180.0 / PI; 
   
-  filteredPitch = 0.98 * (filteredPitch - trueGyroX * 0.01) + 0.02 * accPitch; 
+  filteredPitch = 0.99 * (filteredPitch - trueGyroX * 0.005) + 0.01 * accPitch; 
   
   int32_t currentPos = getAveragePosition();
   float currentSpeed = (float)(currentPos - lastPosition); 
   lastPosition = currentPos;
-  float Kp_enc = 0*0.005; 
-  float Kd_enc = 0*0.02;    
+  float Kp_enc = 0.005; 
+  float Kd_enc = 0.02;    
   float angleCorrection = (currentPos * Kp_enc) + (currentSpeed * Kd_enc);
-  angleCorrection = constrain(angleCorrection, -8.0, 8.0);
+  angleCorrection = constrain(angleCorrection, -2.0, 2.0);
 
-  float error = targetAngle -angleCorrection - filteredPitch; 
+  float error = targetAngle - angleCorrection - filteredPitch; 
   
-  float dt = 0.01; 
+  float dt = 0.005; 
   float derivative = (error - previousError) / dt;
   
   float u = (Kp * error) + (Kd * derivative);
@@ -179,8 +177,9 @@ void loop() {
   
   int16_t motorSpeed = constrain((int)u, -1023, 1023); 
   setMotors(motorSpeed, motorSpeed); 
-  Serial.printf("Kp: %5.1f | Kd: %5.2f | Err: %5.2f | Motore: %4d\n", Kp, Kd, error, motorSpeed); 
   
+  /* LOG */
+  //Serial.printf("Kp: %5.1f | Kd: %5.2f | Err: %5.2f | Motore: %4d\n", Kp, Kd, error, motorSpeed); 
   M5.Display.setTextColor(TFT_WHITE, TFT_BLACK); 
   M5.Display.setCursor(10, 100); 
   M5.Display.setTextSize(2); 
@@ -190,8 +189,7 @@ void loop() {
   M5.Display.setCursor(10, 160);
   M5.Display.printf("Mot: %4d   \n", motorSpeed);
 
-  Serial.printf("P: %5.2f | Err: %5.2f | Out: %4d\n", filteredPitch, error, motorSpeed); 
-  // Scrittura CSV
+  /* SCRITTURA CSV */
   /*
   String logString = String(u[0]) + "," + String(filteredPitch);
 	csv = SD.open("/telemetria.csv", FILE_APPEND);
@@ -200,5 +198,6 @@ void loop() {
 		csv.close();
 	}
   */
-  delay(10); 
+  /* TEMPORIZZAZIONE */
+  while(micros() - loopTimer < 5000){}
 }
