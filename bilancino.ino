@@ -64,7 +64,7 @@ void loop() {
   filteredPitch = 0.99 * (filteredPitch - trueGyroX * 0.005) + 0.01 * accPitch; 
   
   int32_t currentPos = getAveragePosition();
-  float currentSpeed = (float)(currentPos - lastPosition); 
+  float currentSpeed = (float)(currentPos - lastPosition)/0.005; 
   lastPosition = currentPos;
   float Kp_enc = 0.005; 
   float Kd_enc = 0.02;    
@@ -105,4 +105,5 @@ void loop() {
   */
   /* TEMPORIZZAZIONE */
   while(micros() - loopTimer < 5000){}
+  loopTimer += 5000;
 }
