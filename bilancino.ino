@@ -16,10 +16,10 @@ float filteredPitch = 0.0;
 float targetAngle = 0.0; 
 float gyroXBias = 0.0; 
 
-int32_t offsetEnc = 0; // Per azzerare la posizione
+int32_t offsetEnc = 0; 
 int32_t lastPosition = 0;
 
-// Controllo velocità
+// Controllo posizione
 void readEncoders(int32_t *encL, int32_t *encR) {
   uint8_t data[8];
   Wire.beginTransmission(0x3A);
@@ -85,7 +85,7 @@ void calibrateZero() {
   filteredPitch = targetAngle; 
   previousError = 0.0; 
 
-  // Controllo velocità
+  // Controllo posizione
   int32_t eL=0, eR=0;
   readEncoders(&eL, &eR);
   offsetEnc = (eL + eR) / 2;
@@ -163,11 +163,9 @@ void loop() {
   int32_t currentPos = getAveragePosition();
   float currentSpeed = (float)(currentPos - lastPosition); 
   lastPosition = currentPos;
-  float Kp_enc = 0*0.005; // Forza con cui cerca di tornare al punto zero
-  float Kd_enc = 0*0.02;  // Freno per non fargli superare il bersaglio di slancio  
-  // Nota: Il segno dipende dal verso fisico dei tuoi motori.
+  float Kp_enc = 0*0.005; 
+  float Kd_enc = 0*0.02;    
   float angleCorrection = (currentPos * Kp_enc) + (currentSpeed * Kd_enc);
-  // Limita la correzione a max 8 gradi per evitare che cada nel tentativo di fermarsi
   angleCorrection = constrain(angleCorrection, -8.0, 8.0);
 
   float error = targetAngle -angleCorrection - filteredPitch; 
