@@ -3,7 +3,7 @@
 
 /* Definizioni Globali */
 int32_t eL = 0, eR = 0;  
-int motor = 0; // 0 per left, 1 per right
+int motor = 1; // 0 per left, 1 per right
 int tick = 0;
 uint32_t loopTimer; 
 int dt = 1000; // 1 ms loop
@@ -12,6 +12,7 @@ int dt = 1000; // 1 ms loop
 bool testRunning = true;
 uint32_t startTime;
 int currentPWM = 0;
+int reverse = -1; //1 per dritto
 
 
 /* Funzioni */
@@ -83,7 +84,7 @@ void loop() {
     return;
   }
   
-  setMotor(currentPWM, motor);
+  setMotor(reverse*currentPWM, motor);
   readEncoders(&eL, &eR);
   int32_t currentTick = (motor == 0) ? eL : eR;
   
